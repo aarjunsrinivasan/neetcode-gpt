@@ -1,47 +1,51 @@
-from typing import List, Dict
+from typing import List
+from collections import defaultdict
 
 class Solution:
-    def tokenize_numbers(self, m: List[int], vocab: Dict[str, int]) -> List[List[str]]:
-        # Tokenize each number using greedy left-to-right longest match.
-        # Return a list of token lists showing how each number gets split.
-        ans =[]
-        for num in m:
-            res = self.tokenize(str(num),vocab)
-            ans.append(res)
-        return ans
+    def get_merges(self, corpus: str, num_merges: int) -> List[List[str]]:
+        # 1. Split corpus into a list of individual characters
+        # 2. For each merge step:
+        #    a. Count frequency of all adjacent token pairs
+        #    b. Find the most frequent pair (break ties lexicographically)
+        #    c. Merge all non-overlapping occurrences left to right
+        #    d. Record the merge as [token_a, token_b]
+        # 3. Return the list of merges performed
+        tokens = list(corpus)
+        # print(tokens)
+        merges = []
+        for _ in range(num_merges):
+            # print(tokens,'tok')
+            if len(tokens)<2:
+                break
+            pairs = defaultdict(int)
+            
+            for i in range(len(tokens)-1):
+                pairs[(tokens[i],tokens[i+1])]+=1
+           
+            if not pairs:
+                break
+            maxf = max(pairs.values())
+            best_pairs = [pair for pair in pairs if pairs[pair]==maxf ]
+            best_pairs.sort()
+            # print(best_pairs)
+            best_pair = best_pairs[0]
+            merges.append([best_pair[0],best_pair[1]])
+            ntk = []
+            i =0 
+            while i <len(tokens):
+                if i<len(tokens) -1 and tokens[i]==best_pair[0] and tokens[i+1]==best_pair[1]:
+                    i+=2
+                    ntk.append(best_pair[0]+best_pair[1])
+                else:
+                    ntk.append(tokens[i])
+                    i+=1
+            # print(ntk,'ntk')
+            tokens = ntk
 
-    def tokenize(self,numstr,vocab):
-        res = []
-        l ,r= 0,1
-        n = len(numstr)
-        
-        while l<n:
-            best = None
-            for length in range(n-l,0,-1):
-                substr = numstr[l:l+length]
-                if substr in vocab:
-                    best = substr
-                    break
-            if best is None:
-                res.append(numstr[l])
-                l+=1
-            else:
-                res.append(best)
-                l+=len(best)
-                    
-    
-        return res
-                
 
-    def count_tokens(self, text: str, vocab: Dict[str, int]) -> int:
-        # Count how many tokens the text uses with greedy tokenization.
-        # Use greedy left-to-right longest match.
-        return len(self.tokenize(text,vocab))
 
-    def fertility_score(self, text: str, vocab: Dict[str, int]) -> float:
-        # Compute tokens-per-word ratio (fertility).
-        # Higher = more expensive and less efficient.
-        # Round to 4 decimal places.
-        tokens = self.tokenize(text,vocab)
-        words= text.split()
-        return round(len(tokens)/len(words),4)
+            
+
+
+            
+        return merges
