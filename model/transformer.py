@@ -10,13 +10,11 @@ class TransformerBlock(nn.Module):
         super().__init__()
         torch.manual_seed(0)
         # Instantiate in this order:
-        # 1. self.MultiHeadedSelfAttention(model_dim, num_heads)
-        # 2. self.VanillaNeuralNetwork(model_dim)
-        # 3. Two nn.LayerNorm(model_dim) instances
-        self.attn = self.MultiHeadedSelfAttention(model_dim, num_heads)
-        self.mlp = self.VanillaNeuralNetwork(model_dim)
-        self.ln1 = nn.LayerNorm(model_dim)
-        self.ln2 = nn.LayerNorm(model_dim)
+        self.mha = self.MultiHeadedSelfAttention(model_dim, num_heads)
+        self.proj = self.VanillaNeuralNetwork(model_dim)
+        self.ln1= nn.LayerNorm(model_dim)
+        self.ln2= nn.LayerNorm(model_dim)
+
 
     def forward(self, embedded: TensorType[float]) -> TensorType[float]:
         torch.manual_seed(0)
@@ -24,10 +22,9 @@ class TransformerBlock(nn.Module):
         #   x = x + attention(layer_norm_1(x))
         #   x = x + feed_forward(layer_norm_2(x))
         # Return result rounded to 4 decimal places
-        embedded = embedded +self.attn(self.ln1(embedded))
-        embedded = embedded +self.mlp(self.ln2(embedded))
-
-        return embedded
+        x = embedded + self.mha(self.ln1(embedded))
+        x = x + self.proj(self.ln2(x))
+        return x 
 
     class MultiHeadedSelfAttention(nn.Module):
 
