@@ -9,10 +9,9 @@ class SingleHeadAttention(nn.Module):
         torch.manual_seed(0)
         # Create three linear projections (Key, Query, Value) with bias=False
         # Instantiation order matters for reproducible weights: key, query, value
-        self.Wk = nn.Linear(embedding_dim,attention_dim,bias=False)
-        self.Wq = nn.Linear(embedding_dim,attention_dim,bias=False)
-        self.Wv = nn.Linear(embedding_dim,attention_dim,bias=False)
-
+        self.k = nn.Linear(embedding_dim,attention_dim,bias=False)
+        self.q = nn.Linear(embedding_dim,attention_dim,bias=False)
+        self.v = nn.Linear(embedding_dim,attention_dim,bias=False)
 
     def forward(self, embedded: TensorType[float]) -> TensorType[float]:
         # 1. Project input through K, Q, V linear layers
@@ -21,17 +20,17 @@ class SingleHeadAttention(nn.Module):
         #    then masked_fill positions where mask == 0 with float('-inf')
         # 4. Apply softmax(dim=2) to masked scores
         # 5. Return (scores @ V) rounded to 4 decimal places
-        q = self.Wq(embedded)
-        k = self.Wk(embedded)
-        v = self.Wv(embedded)
+        b,s,embedding_dim =  embedded.shape
+        Q = self.q(embedded)
+        K = self.k(embedded)
+        V = self.v(embedded)
+        b,s,attention_dim  = K.shape 
+        scores = Q @ K.transpose(2,1)/torch.sqrt(torch.tensor(attention_dim))
+        mask = torch.tril(torch.ones(s,s))
+        scores = torch.where(mask==0,float('-inf'),scores)
+        scores = nn.Softmax(dim=-1)(scores)
 
-        context_length, attention_dim = k.shape[1], k.shape[2]
-        # B,Seq,Model_dim
+        return scores @ V
 
-        scores  = q@k.mT
-        scores= scores /(attention_dim**0.5)
-        lower_triangular = torch.tril(torch.ones(context_length, context_length))
-        mask = lower_triangular == 0
-        scores = scores.masked_fill(mask, float('-inf'))
-        scores = nn.functional.softmax(scores, dim=-1)
-        return torch.round(scores@v, decimals=4)
+
+        
