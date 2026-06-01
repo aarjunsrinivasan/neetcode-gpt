@@ -25,9 +25,10 @@ class SingleHeadAttention(nn.Module):
         K = self.k(embedded)
         V = self.v(embedded)
         b,s,attention_dim  = K.shape 
-        scores = Q @ K.transpose(2,1)/torch.sqrt(torch.tensor(attention_dim))
+        scores = Q @ K.transpose(2,1)/attention_dim**0.5
         mask = torch.tril(torch.ones(s,s))
-        scores = torch.where(mask==0,float('-inf'),scores)
+        # scores = torch.where(mask==0,float('-inf'),scores)
+        scores = scores.masked_fill(mask==0,float('-inf'))
         scores = nn.Softmax(dim=-1)(scores)
 
         return scores @ V
